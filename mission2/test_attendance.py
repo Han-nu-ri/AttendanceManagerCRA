@@ -1,6 +1,7 @@
 import pytest
-from mission2.attendance import AttendanceCalculator
-from mission2.player import Player
+from attendance import AttendanceCalculator
+from grade import Normal, Gold
+from player import Player
 
 
 def test_add_basic_point():
@@ -36,13 +37,13 @@ def test_is_removed():
     attendance_calculator = AttendanceCalculator()
     name = "Jane Doe"
     back_number = attendance_calculator.get_back_number(name)
-    attendance_calculator.players[back_number].grade = "NORMAL"
+    attendance_calculator.players[back_number].grade = Normal()
     attendance_calculator.players[back_number].attendance_counts['saturday'] = 0
     attendance_calculator.players[back_number].attendance_counts['sunday'] = 0
     attendance_calculator.players[back_number].attendance_counts['wednesday'] = 0
     assert attendance_calculator.is_removed(back_number)
 
-    attendance_calculator.players[back_number].grade = "GOLD"
+    attendance_calculator.players[back_number].grade = Gold()
     assert not attendance_calculator.is_removed(back_number)
 
 def test_analyze_grade():
@@ -50,17 +51,17 @@ def test_analyze_grade():
     back_number = attendance_calculator.get_back_number(name="Jane Doe")
     attendance_calculator.players[back_number].points = 10
     attendance_calculator.analyze_grade()
-    assert attendance_calculator.players[back_number].grade == "NORMAL"
+    assert attendance_calculator.players[back_number].grade.get_grade() == "NORMAL"
 
     attendance_calculator.get_back_number(name="SOTA")
     attendance_calculator.players[back_number].points = 30
     attendance_calculator.analyze_grade()
-    assert attendance_calculator.players[back_number].grade == "SILVER"
+    assert attendance_calculator.players[back_number].grade.get_grade() == "SILVER"
 
     attendance_calculator.get_back_number(name="DONA")
     attendance_calculator.players[back_number].points = 50
     attendance_calculator.analyze_grade()
-    assert attendance_calculator.players[back_number].grade == "GOLD"
+    assert attendance_calculator.players[back_number].grade.get_grade() == "GOLD"
 
 
 def test_add_bonus():

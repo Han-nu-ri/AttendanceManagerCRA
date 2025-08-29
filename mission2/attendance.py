@@ -1,5 +1,9 @@
 from typing import Dict
-from mission2.player import Player
+
+from bonus_factory import BonusFactory
+from grade_factory import GradeFactory
+from player import Player
+from point_factory import PointFactory
 
 
 class AttendanceCalculator:
@@ -10,15 +14,8 @@ class AttendanceCalculator:
         self.players: Dict[int, Player] = {}
 
     def add_basic_point(self, attendance_day, back_number):
-        wednesday_point = 3
-        weekend_point = 2
-        basic_point = 1
-        if attendance_day == "wednesday":
-            self.players[back_number].points += wednesday_point
-        elif attendance_day == "saturday" or attendance_day == "sunday":
-            self.players[back_number].points += weekend_point
-        else:
-            self.players[back_number].points += basic_point
+        self.players[back_number].points += PointFactory.get_point(attendance_day)
+
 
     def get_back_number(self, name):
         if name not in self.name_and_back_number:
@@ -48,37 +45,24 @@ class AttendanceCalculator:
                 print(self.players[back_number].name)
 
     def is_removed(self, back_number):
-        return self.players[back_number].grade == "NORMAL" and (
+        return self.players[back_number].grade.get_grade() == "NORMAL" and (
                 self.players[back_number].attendance_counts['saturday']
                 + self.players[back_number].attendance_counts['sunday']) == 0 and \
             self.players[back_number].attendance_counts['wednesday'] == 0
 
     def analyze_grade(self):
-        gold_grade_threshold = 50
-        silver_grade_threshold = 30
         for back_number in range(1, self.max_back_number + 1):
-            if self.players[back_number].points >= gold_grade_threshold:
-                self.players[back_number].grade = "GOLD"
-            elif self.players[back_number].points >= silver_grade_threshold:
-                self.players[back_number].grade = "SILVER"
-            else:
-                self.players[back_number].grade = "NORMAL"
+            self.players[back_number].grade = GradeFactory.creat_grade(self.players[back_number].points)
 
     def add_bonus(self):
-        bonus_threshold = 10
-        bonus_point = 10
         for back_number in range(1, self.max_back_number + 1):
-            if self.players[back_number].attendance_counts['wednesday'] >= bonus_threshold:
-                self.players[back_number].points += bonus_point
-            if self.players[back_number].attendance_counts['saturday'] + self.players[back_number].attendance_counts[
-                'sunday'] >= bonus_threshold:
-                self.players[back_number].points += bonus_point
+            self.players[back_number].points += BonusFactory.get_bonus(self.players[back_number].attendance_counts)
 
     def print_grades(self):
         for back_number in range(1, self.max_back_number + 1):
             print(f"NAME : {self.players[back_number].name}, POINT : {self.players[back_number].points}, GRADE : ",
                   end="")
-            print(self.players[back_number].grade)
+            print(self.players[back_number].grade.get_grade())
 
     def read_attendance_records(self):
         attendance_records_file = "attendance_weekday_500.txt"
