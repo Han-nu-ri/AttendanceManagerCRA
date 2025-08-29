@@ -5,37 +5,35 @@ from grade import Normal, Gold
 from player import Player
 
 
-def test_add_basic_point():
-    attendance_calculator = AttendanceCalculator()
+@pytest.fixture
+def attendance_calculator():
+    return AttendanceCalculator()
+
+
+@pytest.mark.parametrize("day, expected_point", [
+    ('wednesday', 3),
+    ('saturday', 2),
+    ('sunday', 2),
+    ('monday', 1),
+])
+def test_add_basic_point(attendance_calculator, day, expected_point):
     back_number = 0
     name = "Jane Doe"
     attendance_calculator.players[back_number] = Player(back_number=back_number, name=name)
-    attendance_calculator.add_basic_point(attendance_day='wednesday', back_number=back_number)
-    assert attendance_calculator.players[back_number].points == 3
+    attendance_calculator.add_basic_point(attendance_day=day, back_number=back_number)
+    assert attendance_calculator.players[back_number].points == expected_point
 
-    attendance_calculator.players[back_number] = Player(back_number=back_number, name=name)
-    attendance_calculator.add_basic_point(attendance_day='saturday', back_number=back_number)
-    assert attendance_calculator.players[back_number].points == 2
 
-    attendance_calculator.players[back_number] = Player(back_number=back_number, name=name)
-    attendance_calculator.add_basic_point(attendance_day='sunday', back_number=back_number)
-    assert attendance_calculator.players[back_number].points == 2
+@pytest.mark.parametrize("names, expected_back_numbers", [
+    (['Jane Doe'], [1]),
+    (['Jane Doe', 'SOTA'], [1, 2]),
+])
+def test_get_back_number(attendance_calculator, names, expected_back_numbers):
+    for name, expected_back_number in zip(names, expected_back_numbers):
+        assert expected_back_number == attendance_calculator.get_back_number(name)
 
-    attendance_calculator.players[back_number] = Player(back_number=back_number, name=name)
-    attendance_calculator.add_basic_point(attendance_day='monday', back_number=back_number)
-    assert attendance_calculator.players[back_number].points == 1
 
-def test_get_back_number():
-    attendance_calculator = AttendanceCalculator()
-    name = "Jane Doe"
-    expected_back_number = 1
-    assert expected_back_number == attendance_calculator.get_back_number(name)
-    name = "SOTA"
-    expected_back_number = 2
-    assert expected_back_number == attendance_calculator.get_back_number(name)
-
-def test_is_removed():
-    attendance_calculator = AttendanceCalculator()
+def test_is_removed(attendance_calculator):
     name = "Jane Doe"
     back_number = attendance_calculator.get_back_number(name)
     attendance_calculator.players[back_number].grade = Normal()
@@ -47,49 +45,35 @@ def test_is_removed():
     attendance_calculator.players[back_number].grade = Gold()
     assert not attendance_calculator.is_removed(back_number)
 
-def test_analyze_grade():
-    attendance_calculator = AttendanceCalculator()
-    back_number = attendance_calculator.get_back_number(name="Jane Doe")
-    attendance_calculator.players[back_number].points = 10
+
+@pytest.mark.parametrize("name, point, grade", [
+    ("Jane Doe", 10, "NORMAL"),
+    ("SOTA", 30, "SILVER"),
+    ("DONA", 50, "GOLD"),
+])
+def test_analyze_grade(attendance_calculator, name, point, grade):
+    back_number = attendance_calculator.get_back_number(name=name)
+    attendance_calculator.players[back_number].points = point
     attendance_calculator.analyze_grade()
-    assert attendance_calculator.players[back_number].grade.get_grade() == "NORMAL"
-
-    attendance_calculator.get_back_number(name="SOTA")
-    attendance_calculator.players[back_number].points = 30
-    attendance_calculator.analyze_grade()
-    assert attendance_calculator.players[back_number].grade.get_grade() == "SILVER"
-
-    attendance_calculator.get_back_number(name="DONA")
-    attendance_calculator.players[back_number].points = 50
-    attendance_calculator.analyze_grade()
-    assert attendance_calculator.players[back_number].grade.get_grade() == "GOLD"
+    assert attendance_calculator.players[back_number].grade.get_grade() == grade
 
 
-def test_add_bonus():
-    attendance_calculator = AttendanceCalculator()
-    back_number = attendance_calculator.get_back_number(name="Jane Doe")
-    attendance_calculator.players[back_number].points = 10
-    attendance_calculator.players[back_number].attendance_counts['wednesday'] = 10
+@pytest.mark.parametrize("name, point, attendance_counts, expected_points", [
+    ("Jane Doe", 10,
+     {'monday': 0, 'tuesday': 0, 'wednesday': 10, 'thursday': 0, 'friday': 0, 'saturday': 0, 'sunday': 0}, 20),
+    ("SOTA", 8, {'monday': 0, 'tuesday': 0, 'wednesday': 0, 'thursday': 0, 'friday': 0, 'saturday': 5, 'sunday': 5},
+     18),
+    ("DONA", 8, {'monday': 0, 'tuesday': 0, 'wednesday': 0, 'thursday': 0, 'friday': 0, 'saturday': 5, 'sunday': 4}, 8),
+])
+def test_add_bonus(attendance_calculator, name, point, attendance_counts, expected_points):
+    back_number = attendance_calculator.get_back_number(name=name)
+    attendance_calculator.players[back_number].points = point
+    attendance_calculator.players[back_number].attendance_counts = attendance_counts
     attendance_calculator.add_bonus()
-    assert attendance_calculator.players[back_number].points == 20
-
-    back_number = attendance_calculator.get_back_number(name="SOTA")
-    attendance_calculator.players[back_number].points = 8
-    attendance_calculator.players[back_number].attendance_counts['saturday'] = 5
-    attendance_calculator.players[back_number].attendance_counts['sunday'] = 5
-    attendance_calculator.add_bonus()
-    assert attendance_calculator.players[back_number].points == 18
-
-    back_number = attendance_calculator.get_back_number(name="DONA")
-    attendance_calculator.players[back_number].points = 8
-    attendance_calculator.players[back_number].attendance_counts['saturday'] = 4
-    attendance_calculator.players[back_number].attendance_counts['sunday'] = 5
-    attendance_calculator.add_bonus()
-    assert attendance_calculator.players[back_number].points == 8
+    assert attendance_calculator.players[back_number].points == expected_points
 
 
-def test_calculate_attendance_points(capteesys):
-    attendance_calculator = AttendanceCalculator()
+def test_calculate_attendance_points(attendance_calculator, capteesys):
     attendance_calculator.calculate_attendance_points()
     captured = capteesys.readouterr()
     expected = """NAME : Umar, POINT : 48, GRADE : SILVER
@@ -125,26 +109,22 @@ Zane
         assert captured.out == "파일을 찾을 수 없습니다.\n"
 
 
-def test_read_attendance_records_should_raise_file_not_found_error_when_file_path_is_invalid():
-    attendance_calculator = AttendanceCalculator()
+def test_read_attendance_records_should_raise_file_not_found_error_when_file_path_is_invalid(attendance_calculator):
     with patch('builtins.open', side_effect=FileNotFoundError):
         with pytest.raises(FileNotFoundError):
             attendance_calculator.read_attendance_records()
 
 
-def test_read_attendance_records_should_break_when_line_is_none():
-    attendance_calculator = AttendanceCalculator()
+def test_read_attendance_records_should_break_when_line_is_none(attendance_calculator):
     with patch("builtins.open", mock_open(read_data="Charlie friday\n")) as mock_file:
         attendance_calculator.read_attendance_records()
         assert len(attendance_calculator.attendance_records) == 1
 
 
-def test_calculate_attendance_days_and_points_should_raise_exception_when_input_is_invalid():
-    attendance_calculator = AttendanceCalculator()
+def test_calculate_attendance_days_and_points_should_raise_exception_when_input_is_invalid(attendance_calculator):
     attendance_calculator.attendance_records = ["invalidinput"]
     with pytest.raises(Exception):
         attendance_calculator.calculate_attendance_days_and_points()
-
 
     attendance_calculator.attendance_records = ["chris invalid"]
     with pytest.raises(Exception):
