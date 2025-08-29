@@ -19,3 +19,5 @@ class PointFactory:
             return SaturdayPoint().get_point()
         elif attendance_day == "sunday":
             return SundayPoint().get_point()
+        else:
+            raise Exception("Invalid date. Input must be monday, tuesday, wednesday, thursday, friday, saturday, sunday")

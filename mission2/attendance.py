@@ -34,8 +34,6 @@ class AttendanceCalculator:
             self.print_removed_players()
         except FileNotFoundError:
             print("파일을 찾을 수 없습니다.")
-        except Exception as exception:
-            print(f"{exception}")
 
     def print_removed_players(self):
         print("\nRemoved player")
